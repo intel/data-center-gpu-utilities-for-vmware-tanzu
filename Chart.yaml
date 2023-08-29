@@ -1,0 +1,28 @@
+apiVersion: v2
+name: intel-gpu-backport-i915
+description: A Helm chart for backported Intel GPU driver
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+dependencies:
+  - name: cert-manager-crds
+    version: 1.12.2
+    repository: https://mesosphere.github.io/charts/stable
+    condition: deps.certmanager
+  - name: cert-manager
+    version: 1.12.4
+    repository: https://charts.jetstack.io
+    condition: deps.certmanager
+  - name: node-feature-discovery
+    alias: nfd
+    version: 0.14.1
+    repository: https://kubernetes-sigs.github.io/node-feature-discovery/charts
+    condition: deps.nfd
+  - name: intel-device-plugins-operator
+    alias: operator
+    version: 0.27.1
+    repository: https://intel.github.io/helm-charts/
+  - name: "intel-device-plugins-gpu"
+    alias: gpu
+    version: 0.27.1
+    repository: https://intel.github.io/helm-charts/

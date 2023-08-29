@@ -1,0 +1,14 @@
+{{ if .Values.deps.certmanager }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager
+{{ end }}
+---
+{{ if .Values.deps.nfd }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: node-feature-discovery
+{{ end }}
+

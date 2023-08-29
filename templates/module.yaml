@@ -1,0 +1,43 @@
+apiVersion: kmm.sigs.x-k8s.io/v1beta1
+kind: Module
+metadata:
+  name: kmm-i915-backport
+  namespace: kmm-operator-system
+spec:
+  moduleLoader:
+    container:
+      modprobe:
+        moduleName: i915
+        firmwarePath: /intel-dgpu-firmware
+      imagePullPolicy: Always
+      registryTLS:
+        insecureSkipTLSVerify: true
+      kernelMappings:
+        - regexp: '^5.1[45].0.+$'
+          containerImage: {{ required "Local repository is required" .Values.local.image }}:$KERNEL_FULL_VERSION
+          registryTLS:
+            insecureSkipTLSVerify: true
+          build:
+            buildArgs:
+            {{ if .Values.proxy.http }}
+            - name: HTTP_PROXY
+              value: {{ .Values.proxy.http }}
+            {{ end }}
+            {{ if .Values.proxy.https }}
+            - name: HTTPS_PROXY
+              value: {{ .Values.proxy.https }}
+            {{ end }}
+            {{ if .Values.proxy.noproxy }}
+            - name: NO_PROXY
+              value: {{ .Values.proxy.noproxy }}
+            {{ end }}
+            dockerfileConfigMap:
+              name: i915-build-module
+            baseImageRegistryTLS:
+              insecureSkipTLSVerify: true
+{{ if .Values.local.secret.base64 }}
+  imageRepoSecret:
+    name: driver-registry-secret
+{{ end }}
+  selector:
+    intel.feature.node.kubernetes.io/gpu-pci: "true"

@@ -1,0 +1,220 @@
+name: gpubackportdriverkmmo-sample
+
+backport:
+  i915Branch: backport/main # or ubuntu/main
+
+proxy:
+  http:
+  https:
+  noproxy:
+
+local:
+  # image path to fetch (and to store) driver images without tag
+  # e.g. foo.registry.local/intel-gpu-backport-driver
+  image:
+  secret:
+    base64:
+
+build:
+  baseImage: "ubuntu:20.04"
+
+networkpolicy:
+  enabled: true
+  apiserver: 10.96.0.1/32
+
+  kmmo:
+    # list of extra ports that are allowed from kmmo namespace
+    extraPorts:
+      - protocol: TCP
+        port: 443 # HTTPS
+      - protocol: TCP
+        port: 80 # HTTP
+
+deps:
+  certmanager: true
+  nfd: true
+
+# Dependencies
+cert-manager:
+  namespace: cert-manager
+
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "100Mi"
+    limits:
+      cpu: "400m"
+      memory: "250Mi"
+
+  automountServiceAccountToken: false
+  serviceAccount:
+    automountServiceAccountToken: false
+  volumes:
+  - name: serviceaccount-token
+    projected:
+      defaultMode: 0444
+      sources:
+      - serviceAccountToken:
+          expirationSeconds: 3607
+          path: token
+      - configMap:
+          name: kube-root-ca.crt
+          items:
+          - key: ca.crt
+            path: ca.crt
+      - downwardAPI:
+          items:
+          - path: namespace
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+  volumeMounts:
+  - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+    name: serviceaccount-token
+    readOnly: true
+
+
+  webhook:
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "100Mi"
+      limits:
+        cpu: "200m"
+        memory: "250Mi"
+
+    automountServiceAccountToken: false
+    serviceAccount:
+      automountServiceAccountToken: false
+    volumes:
+    - name: serviceaccount-token
+      projected:
+        defaultMode: 0444
+        sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            name: kube-root-ca.crt
+            items:
+            - key: ca.crt
+              path: ca.crt
+        - downwardAPI:
+            items:
+            - path: namespace
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+    volumeMounts:
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: serviceaccount-token
+      readOnly: true
+
+  cainjector:
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "100Mi"
+      limits:
+        cpu: "200m"
+        memory: "250Mi"
+
+    automountServiceAccountToken: false
+    serviceAccount:
+      automountServiceAccountToken: false
+    volumes:
+    - name: serviceaccount-token
+      projected:
+        defaultMode: 0444
+        sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            name: kube-root-ca.crt
+            items:
+            - key: ca.crt
+              path: ca.crt
+        - downwardAPI:
+            items:
+            - path: namespace
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+    volumeMounts:
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: serviceaccount-token
+      readOnly: true
+
+  startupapicheck:
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "100Mi"
+      limits:
+        cpu: "200m"
+        memory: "250Mi"
+
+    automountServiceAccountToken: false
+    serviceAccount:
+      automountServiceAccountToken: false
+    volumes:
+    - name: serviceaccount-token
+      projected:
+        defaultMode: 0444
+        sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            name: kube-root-ca.crt
+            items:
+            - key: ca.crt
+              path: ca.crt
+        - downwardAPI:
+            items:
+            - path: namespace
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+    volumeMounts:
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: serviceaccount-token
+      readOnly: true
+
+nfd:
+  image:
+    tag: v0.14.1-minimal
+  namespaceOverride: node-feature-discovery
+  master:
+    extraLabelNs: gpu.intel.com
+    resourceLabels: ["gpu.intel.com/millicores","gpu.intel.com/memory.max","gpu.intel.com/tiles"]
+
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "300Mi"
+      limits:
+        cpu: "500m"
+        memory: "500Mi"
+
+  worker:
+    config:
+      core:
+        sleepInterval: 15s
+      labelSources:
+        - "local"
+
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "300Mi"
+      limits:
+        cpu: "500m"
+        memory: "500Mi"
+
+  gc:
+    enable: false
+
+gpu:
+  nodeFeatureRule: true
