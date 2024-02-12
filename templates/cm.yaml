@@ -7,7 +7,8 @@ data:
   dockerfile: |
     FROM {{ .Values.build.baseImage }} as builder
     ARG KERNEL_VERSION=''
-    ARG I915_BRANCH='{{ .Values.backport.i915Branch }}'
+    ARG I915_TAG='{{ .Values.backport.i915Tag }}'
+    ARG FIRMWARE_TAG='{{ .Values.backport.firmwareTag }}'
     RUN apt-get update && apt-get install --no-install-recommends -y bc \
         ca-certificates \
         coreutils \
@@ -16,7 +17,7 @@ data:
         flex \
         libelf-dev \
         gnupg \
-        git \
+        wget \
         make \
         bc \
         gcc \
@@ -30,14 +31,16 @@ data:
     WORKDIR /usr/src
 
     # i915
-    RUN git clone -b ${I915_BRANCH} --depth 1 https://github.com/intel-gpu/intel-gpu-i915-backports.git
+    RUN mkdir -p intel-gpu-i915-backports && \
+      wget -q https://github.com/intel-gpu/intel-gpu-i915-backports/archive/refs/tags/${I915_TAG}.tar.gz -O - | tar zx --strip-components=1 -C intel-gpu-i915-backports
     WORKDIR /usr/src/intel-gpu-i915-backports
     RUN make defconfig-i915 && make -j8 && make modules_install
 
     WORKDIR /usr/src
 
     # FW
-    RUN git clone https://github.com/intel-gpu/intel-gpu-firmware.git && \
+    RUN mkdir -p intel-gpu-firmware && \
+      wget -q https://github.com/intel-gpu/intel-gpu-firmware/archive/refs/tags/${FIRMWARE_TAG}.tar.gz -O - | tar zx --strip-components=1 -C intel-gpu-firmware && \
           cd intel-gpu-firmware/ && rm -rf .git && cd firmware && \
           rm -f adlp* bxt* cml* cnl* ehl* glk* icl* kbl* mtl* rkl* skl* tgl*
 

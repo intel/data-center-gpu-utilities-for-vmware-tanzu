@@ -1,7 +1,8 @@
 name: gpubackportdriverkmmo-sample
 
 backport:
-  i915Branch: backport/main # or ubuntu/main
+  i915Tag: "I915_23WW51.5_682.48_23.6.42_230425.56"
+  firmwareTag: "23WW49.5_775.20"
 
 proxy:
   http:
