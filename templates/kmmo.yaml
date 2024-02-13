@@ -1,3 +1,4 @@
+# Content of this yaml is derived from here: https://github.com/kubernetes-sigs/kernel-module-management/tree/main/config/default
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -5,7 +6,7 @@ metadata:
     app.kubernetes.io/component: kmm
     app.kubernetes.io/name: kmm
     app.kubernetes.io/part-of: kmm
-    control-plane: controller-manager
+    control-plane: controller
   name: kmm-operator-system
 ---
 apiVersion: v1
@@ -15,7 +16,7 @@ metadata:
     app.kubernetes.io/component: kmm
     app.kubernetes.io/name: kmm
     app.kubernetes.io/part-of: kmm
-  name: kmm-operator-controller-manager
+  name: kmm-operator-controller
   namespace: kmm-operator-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -52,6 +53,16 @@ rules:
   - update
   - patch
   - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/component: kmm
+    app.kubernetes.io/name: kmm
+    app.kubernetes.io/part-of: kmm
+  name: kmm-operator-event-recorder-clusterrole
+rules:
 - apiGroups:
   - ""
   resources:
@@ -79,15 +90,6 @@ rules:
   - get
   - list
   - patch
-  - watch
-- apiGroups:
-  - batch
-  resources:
-  - jobs
-  verbs:
-  - create
-  - delete
-  - list
   - watch
 - apiGroups:
   - cluster.open-cluster-management.io
@@ -119,6 +121,15 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - nodes
   verbs:
   - get
@@ -130,6 +141,8 @@ rules:
   resources:
   - pods
   verbs:
+  - create
+  - delete
   - get
   - list
   - patch
@@ -138,6 +151,14 @@ rules:
   - ""
   resources:
   - secrets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
   verbs:
   - get
   - list
@@ -160,6 +181,23 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - kmm.sigs.x-k8s.io
+  resources:
+  - nodemodulesconfigs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - kmm.sigs.x-k8s.io
+  resources:
+  - nodemodulesconfigs/status
+  verbs:
+  - patch
 - apiGroups:
   - kmm.sigs.x-k8s.io
   resources:
@@ -232,7 +270,24 @@ roleRef:
   name: kmm-operator-leader-election-role
 subjects:
 - kind: ServiceAccount
-  name: kmm-operator-controller-manager
+  name: kmm-operator-controller
+  namespace: kmm-operator-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/component: kmm
+    app.kubernetes.io/name: kmm
+    app.kubernetes.io/part-of: kmm
+  name: kmm-operator-event-recorder-clusterrolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kmm-operator-event-recorder-clusterrole
+subjects:
+- kind: ServiceAccount
+  name: kmm-operator-controller
   namespace: kmm-operator-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -249,7 +304,7 @@ roleRef:
   name: kmm-operator-manager-role
 subjects:
 - kind: ServiceAccount
-  name: kmm-operator-controller-manager
+  name: kmm-operator-controller
   namespace: kmm-operator-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -266,18 +321,24 @@ roleRef:
   name: kmm-operator-proxy-role
 subjects:
 - kind: ServiceAccount
-  name: kmm-operator-controller-manager
+  name: kmm-operator-controller
   namespace: kmm-operator-system
 ---
 apiVersion: v1
 data:
-  controller_manager_config.yaml: |
+  controller_config.yaml: |
     healthProbeBindAddress: :8081
-    metricsBindAddress: 127.0.0.1:8080
     webhookPort: 9443
     leaderElection:
       enabled: true
       resourceID: kmm.sigs.x-k8s.io
+    metrics:
+      enableAuthnAuthz: true
+      bindAddress: 0.0.0.0:8443
+      secureServing: true
+    worker:
+      runAsUser: 0
+      seLinuxType: spc_t
 kind: ConfigMap
 metadata:
   labels:
@@ -294,8 +355,8 @@ metadata:
     app.kubernetes.io/component: kmm
     app.kubernetes.io/name: kmm
     app.kubernetes.io/part-of: kmm
-    control-plane: controller-manager
-  name: kmm-operator-controller-manager-metrics-service
+    control-plane: controller
+  name: kmm-operator-controller-metrics-service
   namespace: kmm-operator-system
 spec:
   ports:
@@ -307,7 +368,7 @@ spec:
     app.kubernetes.io/component: kmm
     app.kubernetes.io/name: kmm
     app.kubernetes.io/part-of: kmm
-    control-plane: controller-manager
+    control-plane: controller
 ---
 apiVersion: v1
 kind: Service
@@ -330,7 +391,7 @@ spec:
     app.kubernetes.io/component: kmm
     app.kubernetes.io/name: kmm
     app.kubernetes.io/part-of: kmm
-    control-plane: controller-manager
+    control-plane: controller
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -339,8 +400,8 @@ metadata:
     app.kubernetes.io/component: kmm
     app.kubernetes.io/name: kmm
     app.kubernetes.io/part-of: kmm
-    control-plane: controller-manager
-  name: kmm-operator-controller-manager
+    control-plane: controller
+  name: kmm-operator-controller
   namespace: kmm-operator-system
 spec:
   replicas: 1
@@ -349,7 +410,7 @@ spec:
       app.kubernetes.io/component: kmm
       app.kubernetes.io/name: kmm
       app.kubernetes.io/part-of: kmm
-      control-plane: controller-manager
+      control-plane: controller
   template:
     metadata:
       annotations:
@@ -358,7 +419,7 @@ spec:
         app.kubernetes.io/component: kmm
         app.kubernetes.io/name: kmm
         app.kubernetes.io/part-of: kmm
-        control-plane: controller-manager
+        control-plane: controller
     spec:
       affinity:
         nodeAffinity:
@@ -370,21 +431,24 @@ spec:
             - matchExpressions:
               - key: node-role.kubernetes.io/master
                 operator: Exists
+            - matchExpressions:
+              - key: kmm.node.kubernetes.io/control-plane
+                operator: Exists
       containers:
       - args:
-        - --config=controller_manager_config.yaml
-        command:
-        - /manager
+        - --config=controller_config.yaml
         env:
+        - name: RELATED_IMAGE_WORKER
+          value: gcr.io/k8s-staging-kmm/kernel-module-management-worker:latest
         - name: OPERATOR_NAMESPACE
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        - name: RELATED_IMAGES_BUILD
+        - name: RELATED_IMAGE_BUILD
           value: gcr.io/kaniko-project/executor:latest
-        - name: RELATED_IMAGES_SIGN
-          value: gcr.io/k8s-staging-kmm/kernel-module-management-signimage:v20230606-v1.1.0
-        image: gcr.io/k8s-staging-kmm/kernel-module-management-operator:v20230606-v1.1.0
+        - name: RELATED_IMAGE_SIGN
+          value: gcr.io/k8s-staging-kmm/kernel-module-management-signimage:v20240131-v2.0.1
+        image: gcr.io/k8s-staging-kmm/kernel-module-management-operator:v20240131-v2.0.1
         imagePullPolicy: Always
         livenessProbe:
           httpGet:
@@ -397,6 +461,9 @@ spec:
         - containerPort: 9443
           name: webhook-server
           protocol: TCP
+        - containerPort: 8443
+          name: metrics
+          protocol: TCP
         readinessProbe:
           httpGet:
             path: /readyz
@@ -406,48 +473,28 @@ spec:
         resources:
           limits:
             cpu: 500m
-            memory: 128Mi
+            memory: 384Mi
           requests:
             cpu: 10m
             memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          seccompProfile:
+            type: RuntimeDefault
+          capabilities:
+            drop:
+            - "ALL"
         volumeMounts:
         - mountPath: /tmp/k8s-webhook-server/serving-certs
           name: cert
           readOnly: true
-        - mountPath: /controller_manager_config.yaml
+        - mountPath: /controller_config.yaml
           name: manager-config
-          subPath: controller_manager_config.yaml
-        securityContext:
-          runAsNonroot: true
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-              - ALL
-      - args:
-        - --secure-listen-address=0.0.0.0:8443
-        - --upstream=http://127.0.0.1:8080/
-        - --logtostderr=true
-        - --v=0
-        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.14.1
-        name: kube-rbac-proxy
-        ports:
-        - containerPort: 8443
-          name: https
-          protocol: TCP
-        resources:
-          limits:
-            cpu: 500m
-            memory: 128Mi
-          requests:
-            cpu: 5m
-            memory: 64Mi
-        securityContext:
-          runAsNonRoot: true
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-              - ALL
-      serviceAccountName: kmm-operator-controller-manager
+          subPath: controller_config.yaml
+      securityContext:
+        runAsNonRoot: true
+      serviceAccountName: kmm-operator-controller
       terminationGracePeriodSeconds: 10
       tolerations:
       - effect: NoSchedule
@@ -515,6 +562,28 @@ metadata:
     app.kubernetes.io/part-of: kmm
   name: kmm-operator-validating-webhook-configuration
 webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: kmm-operator-webhook-service
+      namespace: kmm-operator-system
+      path: /validate--v1-namespace
+  failurePolicy: Fail
+  name: namespace-deletion.kmm.sigs.k8s.io
+  namespaceSelector:
+    matchLabels:
+      kmm.node.k8s.io/contains-modules: ""
+  rules:
+  - apiGroups:
+    - ""
+    apiVersions:
+    - v1
+    operations:
+    - DELETE
+    resources:
+    - namespaces
+  sideEffects: None
 - admissionReviewVersions:
   - v1
   clientConfig:
