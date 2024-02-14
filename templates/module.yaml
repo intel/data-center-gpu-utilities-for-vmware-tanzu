@@ -13,31 +13,32 @@ spec:
       registryTLS:
         insecureSkipTLSVerify: true
       kernelMappings:
-        - regexp: '^5.1[45].0.+$'
-          containerImage: {{ required "Local repository is required" .Values.local.image }}:$KERNEL_FULL_VERSION
+        - regexp: '^5.15.0.+$'
+          containerImage: {{ required "Local repository is required" .Values.local.image }}:{{ .Values.backport.i915Tag }}-$KERNEL_FULL_VERSION
+          inTreeModuleToRemove: "i915"
           registryTLS:
             insecureSkipTLSVerify: true
           build:
             buildArgs:
-            {{ if .Values.proxy.http }}
+            {{- if .Values.proxy.http }}
             - name: HTTP_PROXY
               value: {{ .Values.proxy.http }}
-            {{ end }}
-            {{ if .Values.proxy.https }}
+            {{- end }}
+            {{- if .Values.proxy.https }}
             - name: HTTPS_PROXY
               value: {{ .Values.proxy.https }}
-            {{ end }}
-            {{ if .Values.proxy.noproxy }}
+            {{- end }}
+            {{- if .Values.proxy.noproxy }}
             - name: NO_PROXY
               value: {{ .Values.proxy.noproxy }}
-            {{ end }}
+            {{- end }}
             dockerfileConfigMap:
               name: i915-build-module
             baseImageRegistryTLS:
               insecureSkipTLSVerify: true
-{{ if .Values.local.secret.base64 }}
+{{- if .Values.local.secret.base64 }}
   imageRepoSecret:
     name: driver-registry-secret
-{{ end }}
+{{- end }}
   selector:
     intel.feature.node.kubernetes.io/gpu-pci: "true"

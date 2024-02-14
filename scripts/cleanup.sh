@@ -16,6 +16,7 @@ kubectl delete crds \
     orders.acme.cert-manager.io \
     modules.kmm.sigs.x-k8s.io \
     preflightvalidations.kmm.sigs.x-k8s.io \
+    nodemodulesconfigs.kmm.sigs.x-k8s.io \
     acceleratorfunctions.fpga.intel.com \
     dlbdeviceplugins.deviceplugin.intel.com \
     dsadeviceplugins.deviceplugin.intel.com \

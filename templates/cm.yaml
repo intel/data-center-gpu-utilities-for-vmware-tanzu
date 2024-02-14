@@ -7,7 +7,7 @@ data:
   dockerfile: |
     FROM {{ .Values.build.baseImage }} as builder
     ARG KERNEL_VERSION=''
-    ARG I915_TAG='{{ .Values.backport.i915Tag }}'
+    ARG I915_TAG='{{ .Values.backport.i915TagFull }}'
     ARG FIRMWARE_TAG='{{ .Values.backport.firmwareTag }}'
     RUN apt-get update && apt-get install --no-install-recommends -y bc \
         ca-certificates \

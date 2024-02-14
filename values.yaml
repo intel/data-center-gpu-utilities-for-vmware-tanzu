@@ -1,7 +1,11 @@
 name: gpubackportdriverkmmo-sample
 
+setFirmwareClassPath: false
+firmwareLoadPathHack: false
+
 backport:
-  i915Tag: "I915_23WW51.5_682.48_23.6.42_230425.56"
+  i915Tag: "I915_23WW51.5"
+  i915TagFull: "I915_23WW51.5_682.48_23.6.42_230425.56"
   firmwareTag: "23WW49.5_775.20"
 
 proxy:

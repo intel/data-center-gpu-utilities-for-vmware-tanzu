@@ -1,0 +1,35 @@
+{{ if .Values.firmwareLoadPathHack }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: firmware-load-path
+  namespace: inteldeviceplugins
+spec:
+  selector:
+    matchLabels:
+      name: firmware-load-path
+  template:
+    metadata:
+      labels:
+        name: firmware-load-path
+    spec:
+      nodeSelector:
+        intel.feature.node.kubernetes.io/gpu-pci: "true"
+      containers:
+      - name: add-path
+        image: busybox:latest
+        command: [ "/bin/sh", "-c", "echo -n /var/lib/firmware > /loadpath; sleep infinity"]
+        securityContext:
+          runAsUser: 0
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - name: sysfs
+          mountPath: /loadpath
+          readOnly: false
+      terminationGracePeriodSeconds: 1
+      volumes:
+      - name: sysfs
+        hostPath:
+          path: /sys/module/firmware_class/parameters/path
+          type: File
+{{ end }}

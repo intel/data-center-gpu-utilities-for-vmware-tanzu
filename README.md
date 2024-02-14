@@ -15,6 +15,8 @@ Table of Contents
     * [Debugging issues](#debugging-issues)
 * [Uninstall](#uninstall)
 * [Limitations](#limitations)
+    * [Firmware load path](#firmware-load-path)
+    * [Kernel versions](#kernel-versions)
 * [Links](#links)
 
 ## Structure
@@ -34,13 +36,13 @@ Table of Contents
 
 The deployment supports a range of Kubernetes cluster versions:
 
-* 1.25 - 1.27
+* 1.25 - 1.29
 
 The range comes via the dependency images and their supporter versions:
 
-* Cert-Manager: 1.22 - 1.27
+* Cert-Manager: 1.24 - 1.29
 * Node Feature Discovery: 1.21 ->
-* Intel Device Plugins: 1.25 - 1.27
+* Intel Device Plugins: 1.25 - 1.29
 
 While not officially supported or tested, deployment may work fine also on older Kubernetes clusters. The deployment uses basic Kubernetes functionality and its dependencies should not depend on latest Kubernetes features either.
 
@@ -50,14 +52,14 @@ The installation requires a container image registry to be accessible and writab
 
 ### Deployment
 
-The driver is installed with a helm chart. This requires helm to be [installed](https://helm.sh/docs/intro/install/).
+The driver is installed with one helm chart. This requires helm to be [installed](https://helm.sh/docs/intro/install/).
 
 Install depends on a few variables:
 
 * local.image - <u>Required</u>
   * A template URL that will be used to store the GPU driver container image.
   * e.g. my.registry.acme.com/intel-gpu-driver
-  * Resulting container image will have a kernel specific tag: *5.15.0-79-generic*
+  * Resulting container image will have a kernel specific tag: *I915-23W01.5-5.15.0-79-generic*
 * local.secret.base64 - Recommended
   * Secret for accessing the registry, if registry requires authentication.
   * Docker's `config.json` in base64 format.
@@ -67,7 +69,6 @@ Install depends on a few variables:
 * proxy - Optional
   * http, https, no_proxy
   * Used if inside a proxy enabled network. Required to fetch driver code from Github projects during build.
-
 
 To install the chart:
 
@@ -84,6 +85,8 @@ helm dep update
 helm install --create-namespace -n inteldeviceplugins --set local.image=my.registry.acme.com/intel-gpu-driver --set local.secret.base64=A123424...438483843= intel-gpu .
 ```
 
+> NOTE: See [Firmware load path](#firmware-load-path) for firmware load configuration.
+
 Once install has succeeded, the Pod listing should look like this:
 ```
 $ kubectl get pods -n cert-manager
@@ -94,8 +97,8 @@ intel-gpu-cert-manager-webhook-85f9d8b544-bf2br      1/1     Running   0        
 
 $ kubectl get pods -n kmm-operator-system
 NAME                                              READY   STATUS    RESTARTS   AGE
-kmm-i915-backport-build-cz7hl-xnx2w               1/1     Running   0          28s
-kmm-operator-controller-manager-9869cb4dd-n2nt4   2/2     Running   0          34s
+kmm-operator-controller-77f78f96c6-psrql          2/2     Running   0          34s
+kmm-i915-backport-build-dhpcl                     1/1     Running   0          28s
 
 $ kubectl get pods -n node-feature-discovery
 NAME                                   READY   STATUS    RESTARTS        AGE
@@ -104,23 +107,23 @@ intel-gpu-nfd-worker-95nsk             1/1     Running   1 (2m12s ago)   2m29s
 intel-gpu-nfd-worker-97d8t             1/1     Running   1 (2m11s ago)   2m30s
 ```
 
-Once the kmm-i915-backport-build Pod finishes, the Pods on the kmm-operator-system namespace changes to something like this:
+Once the kmm-i915-backport-build-dhpcl Pod has completed, another Pod will appear shortly and then disappear:
 
 ```
 $ kubectl get pods -n kmm-operator-system
 NAME                                              READY   STATUS    RESTARTS   AGE
-kmm-i915-backport-dfb8318abc717e84-mrxs8          1/1     Running   0          2m10s
-kmm-i915-backport-dfb8318abc717e84-nrk5g          1/1     Running   0          2m10s
-kmm-operator-controller-manager-9869cb4dd-pfszn   2/2     Running   0          2m21s
+kmm-operator-controller-77f78f96c6-psrql          2/2     Running   0          2m2s
+kmm-worker-gpunode01-kmm-i915-backport            1/1     Running   0          15s
+kmm-worker-gpunode02-kmm-i915-backport            1/1     Running   0          14s
 ```
 
-After the 'kmm-i915-backport-*' Pod has loaded GPU driver to the node, the Intel GPU plugin will get deployed on the node:
+After the GPU driver is loaded to the node, the Intel GPU plugin will get deployed on the node:
 
 ```
 $ kubectl get pods -n inteldeviceplugins
 NAME                                                     READY   STATUS    RESTARTS   AGE
-intel-gpu-plugin-skcdb                                   1/1     Running   0          2m7s
-intel-gpu-plugin-t6hxn                                   1/1     Running   0          2m7s
+intel-gpu-plugin-gpudeviceplugin-sample-f6d6d            1/1     Running   0          2m7s
+intel-gpu-plugin-gpudeviceplugin-sample-t6hxn            1/1     Running   0          2m7s
 inteldeviceplugins-controller-manager-86b94df46c-4wtf6   2/2     Running   0          2m14s
 ```
 
@@ -169,7 +172,7 @@ proxy:
 Sometimes the kernel driver build can fail. Check the build issues from the Pod's logs:
 
 ```
-kubectl logs -f -n kmm-operator-system kmm-i915-backport-build-xxxxx-yyyyy
+kubectl logs -f -n kmm-operator-system kmm-i915-backport-build-dhpcl
 ```
 
 ## Uninstall
@@ -177,10 +180,13 @@ kubectl logs -f -n kmm-operator-system kmm-i915-backport-build-xxxxx-yyyyy
 Helm:
 
 ```
+kubectl delete modules.kmm.sigs.x-k8s.io -n kmm-operator-system kmm-i915-backport
 helm uninstall -n inteldeviceplugins intel-gpu
 ```
 
-Due to how helm handles CRDs, they have to be deleted manually. Cleanup script will also remove any dangling KMM Pods.
+> *NOTE:* kubectl command above is crucial to properly uninstall the GPU KMD. Otherwise driver will stay loaded and there will be CRD conflicts.
+
+As Helm does not support deleting or updating CRDs, they have to be deleted manually. Cleanup script will also try to remove old namespaces.
 
 ```
 bash scripts/cleanup.sh
@@ -190,7 +196,16 @@ bash scripts/cleanup.sh
 
 ## Limitations
 
-When KMMO launches the GPU driver Pod on GPU HW nodes, it copies the firmware files under `/var/lib/firmware`. This path is not in the default search paths for kernel firmware. Thus, it's best to add `firmware_class.path=/var/lib/firmware` to the kernel command line.
+### Firmware load path
+
+When KMMO launches the GPU driver Pod on GPU HW nodes, it copies the firmware files under `/var/lib/firmware`. This path is not in the default search paths for kernel firmware. If possible, it is best to add `firmware_class.path=/var/lib/firmware` to the kernel command line.
+
+With KMMO 2.0 it is now possible to modify the firmware load path automatically by adding a config option. This feature is disabled by default in the configuration, but can be enabled by setting `setFirmwareClassPath: true` in the values.
+Setting the firmware load path via KMMO only works with CRI-O. Containerd has a [bug](https://github.com/containerd/containerd/issues/8445) with privileged containers where `sysfs` is mounted as `ro` when it should be `rw`.
+
+For containerd, there is a workaround that can be enabled by setting `firmwareLoadPathHack: true` in values. This will create a daemonset for all the Intel GPU nodes which writes `/var/lib/firmware` to `/sys/module/firmware_class/parameters/path` in order for the firmware to be loaded correctly.
+
+### Kernel versions
 
 I915 backport driver supports only a handful of kernel versions. For example Ubuntu 20.04 was released with 5.4 kernel and the supported backport kernel is 5.15. The kernel might need to be updated for the backport driver to compile. The supported OS & kernel versions are [listed](https://github.com/intel-gpu/intel-gpu-i915-backports#supported-os-distributions) in the backports project.
 

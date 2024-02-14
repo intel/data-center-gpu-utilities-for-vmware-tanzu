@@ -339,6 +339,9 @@ data:
     worker:
       runAsUser: 0
       seLinuxType: spc_t
+{{- if .Values.setFirmwareClassPath }}
+      setFirmwareClassPath: /var/lib/firmware
+{{- end }}
 kind: ConfigMap
 metadata:
   labels:
