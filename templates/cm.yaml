@@ -9,6 +9,8 @@ data:
     ARG KERNEL_VERSION=''
     ARG I915_TAG='{{ .Values.backport.i915TagFull }}'
     ARG FIRMWARE_TAG='{{ .Values.backport.firmwareTag }}'
+    ARG I915_SHA='{{ .Values.backport.i915SHA256Hash }}'
+    ARG FIRMWARE_SHA='{{ .Values.backport.firmwareSHA256Hash }}'
     RUN apt-get update && apt-get install --no-install-recommends -y bc \
         ca-certificates \
         coreutils \
@@ -32,7 +34,9 @@ data:
 
     # i915
     RUN mkdir -p intel-gpu-i915-backports && \
-      wget -q https://github.com/intel-gpu/intel-gpu-i915-backports/archive/refs/tags/${I915_TAG}.tar.gz -O - | tar zx --strip-components=1 -C intel-gpu-i915-backports
+      wget -q https://github.com/intel-gpu/intel-gpu-i915-backports/archive/refs/tags/${I915_TAG}.tar.gz -O i915.tar.gz && \
+      echo "${I915_SHA} i915.tar.gz" | sha256sum --quiet -c - && \
+      tar zxf i915.tar.gz --strip-components=1 -C intel-gpu-i915-backports && rm -f i915.tar.gz
     WORKDIR /usr/src/intel-gpu-i915-backports
     RUN make defconfig-i915 && make -j8 && make modules_install
 
@@ -40,9 +44,11 @@ data:
 
     # FW
     RUN mkdir -p intel-gpu-firmware && \
-      wget -q https://github.com/intel-gpu/intel-gpu-firmware/archive/refs/tags/${FIRMWARE_TAG}.tar.gz -O - | tar zx --strip-components=1 -C intel-gpu-firmware && \
-          cd intel-gpu-firmware/ && rm -rf .git && cd firmware && \
-          rm -f adlp* bxt* cml* cnl* ehl* glk* icl* kbl* mtl* rkl* skl* tgl*
+      wget -q https://github.com/intel-gpu/intel-gpu-firmware/archive/refs/tags/${FIRMWARE_TAG}.tar.gz -O fw.tar.gz && \
+      echo "${FIRMWARE_SHA} fw.tar.gz" | sha256sum --quiet -c - && \
+      tar zxf fw.tar.gz --strip-components=1 -C intel-gpu-firmware && rm -f fw.tar.gz && \
+      cd intel-gpu-firmware/ && rm -rf .git && cd firmware && \
+      rm -f adlp* bxt* cml* cnl* ehl* glk* icl* kbl* mtl* rkl* skl* tgl*
 
     # copy i915 and its dependencies to one place for easy COPY later and strip debug symbols from modules
     ARG MODULES="video sysimgblt sysfillrect syscopyarea fb_sys_fops i2c-algo-bit drm rc-core cec drm_kms_helper compat i915 intel_vsec"
