@@ -4,11 +4,11 @@ setFirmwareClassPath: false
 firmwareLoadPathHack: false
 
 backport:
-  i915Tag: "I915_23WW51.5"
-  i915TagFull: "I915_23WW51.5_682.48_23.6.42_230425.56"
-  i915SHA256Hash: "3f5ade3974f64a47895c8b2fa0552da8802bdd7f6e140c7776314d31ce41cded"
-  firmwareTag: "23WW49.5_775.20"
-  firmwareSHA256Hash: "77f0069294c7dafc066dc92f5938a05c515e426551a9b9bb8a22266280d5743a"
+  i915Tag: "I915_24WW24.5"
+  i915TagFull: "I915_24WW24.5_803.63_23.10.49_231129.51"
+  i915SHA256Hash: "a8207d18bb49c29fcc259369bdbdfc8b1205769c010e6207914bf130f4e3287a"
+  firmwareTag: "24WW20.5_881.12"
+  firmwareSHA256Hash: "221194819977ec5658ec0442945346e9cb7a3a1e47cf8c8f1bf428b928203a32"
 
 proxy:
   http:
