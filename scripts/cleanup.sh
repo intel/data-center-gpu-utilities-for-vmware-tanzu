@@ -27,7 +27,8 @@ kubectl delete crds \
     sgxdeviceplugins.deviceplugin.intel.com \
     gpudeviceplugins.deviceplugin.intel.com \
     nodefeaturerules.nfd.k8s-sigs.io \
-    nodefeatures.nfd.k8s-sigs.io
+    nodefeatures.nfd.k8s-sigs.io \
+    nodefeaturegroups.nfd.k8s-sigs.io
 
 kubectl delete namespace \
     cert-manager \

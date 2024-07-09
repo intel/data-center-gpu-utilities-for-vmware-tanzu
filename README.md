@@ -36,13 +36,13 @@ Table of Contents
 
 The deployment supports a range of Kubernetes cluster versions:
 
-* 1.25 - 1.29
+* 1.28 - 1.30
 
 The range comes via the dependency images and their supporter versions:
 
-* Cert-Manager: 1.24 - 1.29
+* Cert-Manager: 1.24 - 1.30
 * Node Feature Discovery: 1.21 ->
-* Intel Device Plugins: 1.25 - 1.29
+* Intel Device Plugins: 1.28 - 1.30
 
 While not officially supported or tested, deployment may work fine also on older Kubernetes clusters. The deployment uses basic Kubernetes functionality and its dependencies should not depend on latest Kubernetes features either.
 
@@ -192,7 +192,7 @@ As Helm does not support deleting or updating CRDs, they have to be deleted manu
 bash scripts/cleanup.sh
 ```
 
-*NOTE*: `cleanup.sh` will remove everything. Modify it to ignore dependencies that you might have installed separately.
+*NOTE*: `cleanup.sh` will remove everything. Modify it to ignore dependencies that you might have installed separately, see [Disabling dependencies](#disabling-dependencies).
 
 ## Limitations
 

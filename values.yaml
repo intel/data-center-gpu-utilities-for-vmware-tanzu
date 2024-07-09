@@ -191,7 +191,7 @@ cert-manager:
 
 nfd:
   image:
-    tag: v0.15.1-minimal
+    tag: v0.16.1-minimal
   namespaceOverride: node-feature-discovery
   master:
     extraLabelNs: gpu.intel.com
@@ -231,4 +231,4 @@ operator:
     image:
       hub: docker.io
       hubRepo: bitnami
-      tag: 0.16.0
+      tag: 0.18.0
