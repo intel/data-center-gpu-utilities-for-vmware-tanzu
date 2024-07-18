@@ -442,7 +442,7 @@ spec:
         - --config=controller_config.yaml
         env:
         - name: RELATED_IMAGE_WORKER
-          value: gcr.io/k8s-staging-kmm/kernel-module-management-worker:latest
+          value: gcr.io/k8s-staging-kmm/kernel-module-management-worker:v20240306-v2.0.2
         - name: OPERATOR_NAMESPACE
           valueFrom:
             fieldRef:
@@ -450,8 +450,8 @@ spec:
         - name: RELATED_IMAGE_BUILD
           value: gcr.io/kaniko-project/executor:latest
         - name: RELATED_IMAGE_SIGN
-          value: gcr.io/k8s-staging-kmm/kernel-module-management-signimage:v20240131-v2.0.1
-        image: gcr.io/k8s-staging-kmm/kernel-module-management-operator:v20240131-v2.0.1
+          value: gcr.io/k8s-staging-kmm/kernel-module-management-signimage:v20240306-v2.0.2
+        image: gcr.io/k8s-staging-kmm/kernel-module-management-operator:v20240306-v2.0.2
         imagePullPolicy: Always
         livenessProbe:
           httpGet:
@@ -495,6 +495,8 @@ spec:
         - mountPath: /controller_config.yaml
           name: manager-config
           subPath: controller_config.yaml
+        - mountPath: /sys/devices/virtual/powercap
+          name: powercapmask
       securityContext:
         runAsNonRoot: true
       serviceAccountName: kmm-operator-controller
@@ -507,6 +509,10 @@ spec:
         key: node-role.kubernetes.io/control-plane
         operator: Equal
       volumes:
+      # https://github.com/advisories/GHSA-7ww5-4wqc-m92c
+      # https://github.com/advisories/GHSA-jq35-85cj-fj4p
+      - name: powercapmask
+        emptyDir: {}
       - name: cert
         secret:
           defaultMode: 420
