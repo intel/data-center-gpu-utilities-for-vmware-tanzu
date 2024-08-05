@@ -1,3 +1,5 @@
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/intel/data-center-gpu-utilities-for-vmware-tanzu/badge)](https://scorecard.dev/viewer/?uri=github.com/intel/data-center-gpu-utilities-for-vmware-tanzu)
+
 # Intel® Data Center GPU Utilities for VMWare Tanzu*
 
 Intel® Data Center GPU Utilities for VMWare Tanzu* enables installing of Intel® GPU drivers to vanilla Ubuntu Kubernetes nodes. It downloads, builds and loads the kernel driver and corresponding firmware to the node. When the deployment is removed, all the traces of the driver are removed. With the installed GPU driver, node's Intel® GPUs can be utilized to run compute and other GPU accelerated workloads.
